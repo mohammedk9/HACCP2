@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الهاسب التفاعلي - PWA</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="manifest.json">
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(() => console.log('✅ Service Worker مسجل بنجاح'))
+          .catch(err => console.error('❌ خطأ في تسجيل Service Worker:', err));
+      }
+    </script>
+    <style>
+        body {font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:#eef2f7; color:#333; line-height:1.6;}
+        .container {max-width:1000px; margin:20px auto; background:white; padding:20px; border-radius:12px; box-shadow:0 6px 15px rgba(0,0,0,0.1);}
+        h1 {text-align:center; color:#2c3e50; margin-bottom:20px;}
+        h2 {color:#34495e; border-right:5px solid #3498db; padding-right:10px; margin-top:30px;}
+        table {width:100%; border-collapse:collapse; margin-top:15px;}
+        th, td {padding:10px; border:1px solid #ddd; text-align:right;}
+        th {background:#3498db; color:white;}
+        tr:nth-child(even){background:#f8f9fa;}
+        .form-inline {margin-top:15px; display:flex; flex-wrap:wrap; gap:10px;}
+        .form-inline input, .form-inline select {padding:8px; border:1px solid #ccc; border-radius:5px; flex:1;}
+        .btn {padding:10px 15px; background:#3498db; color:white; border:none; border-radius:6px; cursor:pointer; transition:0.3s;}
+        .btn:hover {background:#2980b9;}
+        .btn-pdf {background:#27ae60;}
+        .btn-pdf:hover {background:#219653;}
+        .highlight {background:#fef9e7; border-left:4px solid #f1c40f; padding:10px; margin-top:10px; border-radius:4px;}
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1><i class="fas fa-warehouse"></i> سجل مراقبة الثلاجات ومخزن المواد الجافة (PWA)</h1>
+    
+    <div class="form-inline">
+        <select id="section">
+            <option value="ثلاجة اللحوم">ثلاجة اللحوم</option>
+            <option value="ثلاجة الخضار والفاكهة">ثلاجة الخضار والفاكهة</option>
+            <option value="ثلاجة الألبان">ثلاجة الألبان</option>
+            <option value="ثلاجة التسييح">ثلاجة التسييح</option>
+            <option value="مخزن المواد الجافة">مخزن المواد الجافة</option>
+        </select>
+        <input type="text" id="date" placeholder="التاريخ">
+        <input type="text" id="time" placeholder="الوقت">
+        <input type="text" id="temp" placeholder="درجة الحرارة / الرطوبة">
+        <input type="text" id="clean" placeholder="النظافة (✓ / ✗)">
+        <input type="text" id="person" placeholder="التوقيع">
+        <input type="text" id="notes" placeholder="ملاحظات">
+        <button class="btn" onclick="addRecord()">إضافة سجل جديد</button>
+    </div>
+
+    <div class="highlight">
+        <i class="fas fa-info-circle"></i> تأكد من إدخال بيانات النظافة لكل ثلاجة والمخزن بعد كل فحص دوري.
+    </div>
+    
+    <table id="recordsTable">
+        <tr>
+            <th>القسم</th>
+            <th>التاريخ</th>
+            <th>الوقت</th>
+            <th>درجة الحرارة / الرطوبة</th>
+            <th>النظافة</th>
+            <th>التوقيع</th>
+            <th>ملاحظات</th>
+        </tr>
+    </table>
+    
+    <button class="btn btn-pdf" onclick="downloadPDF()"><i class="fas fa-download"></i> تصدير PDF</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+<script>
+    let records = JSON.parse(localStorage.getItem("storageRecords")) || [];
+    const table = document.getElementById("recordsTable");
+
+    function renderTable(){
+        table.innerHTML = `<tr>
+            <th>القسم</th>
+            <th>التاريخ</th>
+            <th>الوقت</th>
+            <th>درجة الحرارة / الرطوبة</th>
+            <th>النظافة</th>
+            <th>التوقيع</th>
+            <th>ملاحظات</th>
+        </tr>`;
+        records.forEach(rec => {
+            table.innerHTML += `<tr>
+                <td>${rec.section}</td>
+                <td>${rec.date}</td>
+                <td>${rec.time}</td>
+                <td>${rec.temp}</td>
+                <td>${rec.clean}</td>
+                <td>${rec.person}</td>
+                <td>${rec.notes}</td>
+            </tr>`;
+        });
+    }
+
+    function addRecord(){
+        const rec = {
+            section: document.getElementById("section").value,
+            date: document.getElementById("date").value,
+            time: document.getElementById("time").value,
+            temp: document.getElementById("temp").value,
+            clean: document.getElementById("clean").value,
+            person: document.getElementById("person").value,
+            notes: document.getElementById("notes").value
+        };
+        if(rec.date && rec.time && rec.temp){
+            records.push(rec);
+            localStorage.setItem("storageRecords", JSON.stringify(records));
+            renderTable();
+        } else {
+            alert("يرجى تعبئة الحقول الأساسية (التاريخ، الوقت، درجة الحرارة)");
+        }
+    }
+
+    function downloadPDF(){
+        html2pdf().from(document.querySelector(".container")).save("سجل_الثلاجات_والمخزن.pdf");
+    }
+
+    renderTable();
+</script>
+</body>
+</html>
